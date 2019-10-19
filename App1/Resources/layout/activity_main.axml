@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:minWidth="25px"
+	android:minHeight="25px">
+	<EditText
+		android:inputType="textMultiLine"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:minHeight="125dp"
+		android:id="@+id/notepad"/>
+
+	<LinearLayout
+		android:orientation="horizontal"
+		android:minWidth="100px"
+		android:minHeight="25px"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/notepad"
+		android:id="@+id/passwordLayout">
+		<TextView
+			android:text="Password: "
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/textView1" />
+		<EditText
+			android:inputType="textPassword"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:minWidth="25dp"
+			android:minHeight="25dp"
+			android:id="@+id/password"
+			android:background="#ffdfe3e8" />
+	</LinearLayout>
+	<LinearLayout
+		android:orientation="horizontal"
+		android:minWidth="100px"
+		android:minHeight="25px"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/passwordLayout"
+		android:id="@+id/repeatPasswordLayout">
+		<TextView
+			android:text="Repeat Password: "
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/textView1" />
+		<EditText
+			android:inputType="textPassword"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:minWidth="25dp"
+			android:minHeight="25dp"
+			android:id="@+id/repeatPassword"
+			android:background="#ffdfe3e8" />
+	</LinearLayout>
+	<Button
+		android:text="Encrypt"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/repeatPasswordLayout"
+		android:id="@+id/createButton"
+		android:onClick="Create" 
+	/>
+
+	<TextView
+		android:text=""
+		android:textColor="@android:color/holo_red_dark"
+		android:gravity="center"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/createButton"
+		android:id="@+id/alertText"
+	/>
+</RelativeLayout>
