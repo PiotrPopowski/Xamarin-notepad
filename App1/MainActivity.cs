@@ -7,8 +7,10 @@ using System.Security;
 using Android.Views;
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Android.Content;
 using Android.Runtime;
+using System.Threading.Tasks;
 
 namespace App1
 {
@@ -48,10 +50,12 @@ namespace App1
                 setAlert("Given passwords are different.");
                 return;
             }
+
             try
             {
                 savePassword(notepadPassword.Text);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 setAlert(e.Message);
                 return;
@@ -65,7 +69,7 @@ namespace App1
         public void EncryptText(View v)
         {
             var notepad = FindViewById<EditText>(Resource.Id.notepad);
-            encryptNotepad(new System.Net.NetworkCredential("",passwordInMemory).Password, notepad.Text);
+            encryptNotepad(new System.Net.NetworkCredential("", passwordInMemory).Password, notepad.Text);
 
             passwordInMemory.Clear();
             SetContentView(Resource.Layout.encryptedLayout);
@@ -76,12 +80,12 @@ namespace App1
         {
             var password = FindViewById<EditText>(Resource.Id.password);
             var pswd = password.Text;
-            if(String.IsNullOrWhiteSpace(pswd))
+            if (String.IsNullOrWhiteSpace(pswd))
             {
                 return;
             }
             var hash = Encrypter.GetHash(pswd, SecureStorage.GetAsync("user_salt").Result);
-            if(hash != SecureStorage.GetAsync("user_password").Result)
+            if (hash != SecureStorage.GetAsync("user_password").Result)
             {
                 setAlert("Incorrect password.");
             }
@@ -91,7 +95,7 @@ namespace App1
                     .ForEach(c => passwordInMemory.AppendChar(c));
                 SetContentView(Resource.Layout.decryptedLayout);
                 var notepad = FindViewById<EditText>(Resource.Id.notepad);
-                notepad.Text = StringCipher.Decrypt(Storage.Get("notepad"), pswd);
+                notepad.Text = StringCipher.Decrypt(SecureStorage.GetAsync("notepad").Result, pswd);
             }
         }
 
@@ -101,7 +105,7 @@ namespace App1
             var password = FindViewById<EditText>(Resource.Id.password);
             var repeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
 
-            if(password.Text != repeatPassword.Text)
+            if (password.Text != repeatPassword.Text)
             {
                 setAlert("Given passwords are different.");
                 return;
@@ -110,16 +114,17 @@ namespace App1
             try
             {
                 savePassword(password.Text);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 setAlert(e.Message);
                 return;
             }
 
-            var notepadText = StringCipher.Decrypt(Storage.Get("notepad"), 
+            var notepadText = StringCipher.Decrypt(SecureStorage.GetAsync("notepad").Result,
                                 new System.Net.NetworkCredential("", passwordInMemory).Password);
             encryptNotepad(password.Text, notepadText);
-            
+
             passwordInMemory.Clear();
             password.Text.ToCharArray().ToList()
                 .ForEach(c => passwordInMemory.AppendChar(c));
@@ -135,7 +140,7 @@ namespace App1
             var password = FindViewById<EditText>(Resource.Id.password);
             var repeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
             var notepad = FindViewById<EditText>(Resource.Id.notepad);
-            
+
             passwordInMemory.Clear();
 
             SetContentView(Resource.Layout.encryptedLayout);
@@ -144,14 +149,18 @@ namespace App1
         private void encryptNotepad(string password, string text)
         {
             var encryptedText = StringCipher.Encrypt(text, password);
-            Storage.Save("notepad", encryptedText);
+            SecureStorage.SetAsync("notepad", encryptedText).Wait();
         }
 
         private void savePassword(string password)
         {
-            if(password.Length<4)
+            if (password.Length < 9)
             {
-                throw new Exception("Password has to contain at least 4 characters.");
+                throw new Exception("Password must have at least 8 characters.");
+            }
+            if (!password.Any(c => char.IsUpper(c)) || !password.Any(c => "!@#$%^&*()-+<>|~?".Any(s => s == c)))
+            {
+                throw new Exception("Password must consists of at least 1 upper case letter and one special character.");
             }
 
             var salt = Encrypter.GenerateSalt();
@@ -161,7 +170,7 @@ namespace App1
             SecureStorage.SetAsync("user_password", hash).Wait();
         }
 
-        private void setAlert(string text, string color="red")
+        private void setAlert(string text, string color = "red")
         {
             var alert = FindViewById<TextView>(Resource.Id.alertText);
             alert.SetTextColor(Android.Graphics.Color.ParseColor(color));
