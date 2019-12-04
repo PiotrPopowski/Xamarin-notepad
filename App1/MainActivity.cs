@@ -135,7 +135,7 @@ namespace App1
         }
 
         [Java.Interop.Export("SingOut")]
-        public void SingOut(View v)
+        public void SignOut(View v)
         {
             var password = FindViewById<EditText>(Resource.Id.password);
             var repeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
@@ -157,10 +157,6 @@ namespace App1
             if (password.Length < 9)
             {
                 throw new Exception("Password must have at least 8 characters.");
-            }
-            if (!password.Any(c => char.IsUpper(c)) || !password.Any(c => "!@#$%^&*()-+<>|~?".Any(s => s == c)))
-            {
-                throw new Exception("Password must consists of at least 1 upper case letter and one special character.");
             }
 
             var salt = Encrypter.GenerateSalt();
