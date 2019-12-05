@@ -15,76 +15,22 @@
 	/>
 
 	<LinearLayout
-		android:orientation="horizontal"
-		android:minWidth="100px"
-		android:minHeight="25px"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:layout_below="@id/notepad"
-		android:id="@+id/passwordLayout">
-		<TextView
-			android:text="Password: "
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:id="@+id/textView1" />
-		<EditText
-			android:inputType="textPassword"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:minWidth="25dp"
-			android:minHeight="25dp"
-			android:id="@+id/password"
-			android:background="#ffdfe3e8" 
-			android:layout_gravity="right"/>
-	</LinearLayout>
-
-	<LinearLayout
-		android:orientation="horizontal"
-		android:minWidth="100px"
-		android:minHeight="25px"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:layout_below="@id/passwordLayout"
-		android:id="@+id/repeatPasswordLayout">
-		<TextView
-			android:text="Repeat Password: "
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:id="@+id/textView1" />
-		<EditText
-			android:inputType="textPassword"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:minWidth="25dp"
-			android:minHeight="25dp"
-			android:id="@+id/repeatPassword"
-			android:background="#ffdfe3e8" />
-	</LinearLayout>
-
-	<LinearLayout
 		android:layout_below="@id/repeatPasswordLayout"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:id="@+id/buttonsLayout">
 		<Button
-			android:text="Encrypt"
+			android:text="Save and exit"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:id="@+id/createButton"
+			android:id="@+id/encryptButton"
 			android:onClick="EncryptText" 
-		/>
-		<Button
-			android:text="Change password"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:id="@+id/changeButton"
-			android:onClick="ChangePassword" 
 		/>
 		<Button
 			android:text="Sign Out"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:id="@+id/changeButton"
+			android:id="@+id/signOutButton"
 			android:onClick="SignOut" 
 		/>
 	</LinearLayout>

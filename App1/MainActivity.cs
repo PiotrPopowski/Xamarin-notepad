@@ -6,143 +6,157 @@ using Xamarin.Essentials;
 using System.Security;
 using Android.Views;
 using System;
-using System.Linq;
-using System.Text.RegularExpressions;
-using Android.Content;
-using Android.Runtime;
-using System.Threading.Tasks;
+using Android.Support.V4.Hardware.Fingerprint;
+using Android.Support.V4.Content;
+using Android;
+using Android.Hardware.Fingerprints;
+using Android.Util;
 
 namespace App1
 {
     [Activity(Label = "App1", MainLauncher = true)]
     public class MainActivity : Activity
     {
-        private SecureString passwordInMemory = new SecureString();
+        private SecureString secretInMemory = new SecureString();
+        private FingerprintManagerCompat _fingerprintManager;
+        private CryptoObjectHelper cryptObjectHelper = new CryptoObjectHelper();
+        private SimpleCallbacks myCallback;
+
+        private Android.Support.V4.OS.CancellationSignal _cancellationSignal;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            _fingerprintManager = FingerprintManagerCompat.From(this);
 
-            if (string.IsNullOrWhiteSpace(SecureStorage.GetAsync("user_password").Result))
-                SetContentView(Resource.Layout.activity_main);
+            if (String.IsNullOrWhiteSpace(SecureStorage.GetAsync("secretFingerprint").Result))
+            {
+                SetContentView(Resource.Layout.initial_fingerprint);
+            }
             else
                 SetContentView(Resource.Layout.encryptedLayout);
         }
 
-        protected override void OnPause()
+        void OnAuthSucceededDecryption(FingerprintManagerCompat.AuthenticationResult result)
         {
-            if (string.IsNullOrWhiteSpace(SecureStorage.GetAsync("user_password").Result))
-                SetContentView(Resource.Layout.activity_main);
-            else
-                SetContentView(Resource.Layout.encryptedLayout);
-            base.OnPause();
+            Log.Debug("Auth deryption", "First dec");
+            var cipher = result.CryptoObject.Cipher;
+            var secretFingerprint = Convert.FromBase64String(SecureStorage.GetAsync("secretFingerprint").Result);
+            var decryptedSecret = cipher.DoFinal(secretFingerprint);
+
+            foreach (char c in System.Text.Encoding.Unicode.GetString(decryptedSecret))
+            {
+                secretInMemory.AppendChar(c);
+            }
+
+            SetContentView(Resource.Layout.decryptedLayout);
+            if (!String.IsNullOrWhiteSpace(SecureStorage.GetAsync("notepad").Result))
+            {
+                var notepad = FindViewById<EditText>(Resource.Id.notepad);
+                notepad.Text = StringCipher.Decrypt(SecureStorage.GetAsync("notepad").Result,
+                                                    new System.Net.NetworkCredential("", secretInMemory).Password);
+            }
         }
 
-        [Java.Interop.Export("Create")]
-        public void Create(View v)
+        void OnAuthSucceededEncryption(FingerprintManagerCompat.AuthenticationResult result)
         {
-            var notepad = FindViewById<EditText>(Resource.Id.notepad);
-            var notepadPassword = FindViewById<EditText>(Resource.Id.password);
-            var notepadRepeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
-
-            if (notepadPassword.Text != notepadRepeatPassword.Text)
-            {
-                setAlert("Given passwords are different.");
-                return;
-            }
-
-            try
-            {
-                savePassword(notepadPassword.Text);
-            }
-            catch (Exception e)
-            {
-                setAlert(e.Message);
-                return;
-            }
-            encryptNotepad(notepadPassword.Text, notepad.Text);
-
+            Log.Debug("Authenticated", "First");
+            var cipher = result.CryptoObject.Cipher;
+            var encryptedSecret = cipher.DoFinal(System.Text.Encoding.Unicode.GetBytes(Guid.NewGuid().ToString("n")));
+            SecureStorage.SetAsync("secretFingerprint", Convert.ToBase64String(encryptedSecret));
             SetContentView(Resource.Layout.encryptedLayout);
+            /*
+            if (first)
+            {
+                var initialText = "hihihih";
+                // cipher.Init(Javax.Crypto.CipherMode.EncryptMode, cryptObjectHelper.GetKey());
+                Log.Debug("Auth", $"Try encrypt do final {cipher.BlockSize}");
+                var encryptedText = cipher.DoFinal(System.Text.Encoding.Unicode.GetBytes(initialText));
+                SecureStorage.SetAsync("secret", Convert.ToBase64String(encryptedText)).Wait();
+                notepad.Text = Convert.ToBase64String(encryptedText);
+                first = !first;
+                Log.Debug("Authenticated", "Done");
+            }
+            else
+            {
+                Log.Debug("Auth", "Decrypting");
+                String cipherText = SecureStorage.GetAsync("secret").Result;
+                Log.Debug("decrt", "try dofinal");
+                var enbytes = Convert.FromBase64String(SecureStorage.GetAsync("secret").Result);
+                String finalText = System.Text.Encoding.Unicode.GetString(cipher.DoFinal(enbytes, 0, enbytes.Length));
+                notepad.Text = finalText;
+            }*/
+
+        }
+
+        void OnAuthFailed()
+        {
+            setAlert("Your fingerprint is bad :(");
+        }
+
+        [Java.Interop.Export("Scan_Fingerprint")]
+        public void StartFingerprintScan(View v)
+        {
+            Log.Debug("scan_fingerprint", "scanning");
+            Android.Content.PM.Permission permissionResult = ContextCompat.CheckSelfPermission(this, Manifest.Permission.UseFingerprint);
+            if (permissionResult == Android.Content.PM.Permission.Granted && _fingerprintManager.HasEnrolledFingerprints)
+            {
+                Log.Debug("scan_fingerprint", "permission granted");
+
+                myCallback = new SimpleCallbacks();
+                myCallback.AuthenticationSucceeded += OnAuthSucceededEncryption;
+                myCallback.AuthenticationFailed += OnAuthFailed;
+
+                _cancellationSignal = new Android.Support.V4.OS.CancellationSignal();
+                _fingerprintManager.Authenticate(cryptObjectHelper.BuildCryptoObject(),
+                                             (int)FingerprintAuthenticationFlags.None,
+                                             _cancellationSignal,
+                                             myCallback,
+                                             null);
+
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+
+        [Java.Interop.Export("Decrypt_Fingerprint")]
+        public void DecryptFingerprint(View v)
+        {
+            Log.Debug("decrypt_fingerprint", "scanning");
+            Android.Content.PM.Permission permissionResult = ContextCompat.CheckSelfPermission(this, Manifest.Permission.UseFingerprint);
+            if (permissionResult == Android.Content.PM.Permission.Granted && _fingerprintManager.HasEnrolledFingerprints)
+            {
+                Log.Debug("decrypt_fingerprint", "permission granted");
+
+                myCallback = new SimpleCallbacks();
+                myCallback.AuthenticationSucceeded += OnAuthSucceededDecryption;
+                myCallback.AuthenticationFailed += OnAuthFailed;
+
+                _cancellationSignal = new Android.Support.V4.OS.CancellationSignal();
+                _fingerprintManager.Authenticate(cryptObjectHelper.BuildCryptoObject(Javax.Crypto.CipherMode.DecryptMode),
+                                             (int)FingerprintAuthenticationFlags.None,
+                                             _cancellationSignal,
+                                             myCallback,
+                                             null);
+            }
         }
 
         [Java.Interop.Export("EncryptText")]
         public void EncryptText(View v)
         {
             var notepad = FindViewById<EditText>(Resource.Id.notepad);
-            encryptNotepad(new System.Net.NetworkCredential("", passwordInMemory).Password, notepad.Text);
+            encryptNotepad(new System.Net.NetworkCredential("", secretInMemory).Password, notepad.Text);
 
-            passwordInMemory.Clear();
+            secretInMemory.Clear();
             SetContentView(Resource.Layout.encryptedLayout);
         }
 
-        [Java.Interop.Export("DecryptText")]
-        public void DecryptText(View v)
-        {
-            var password = FindViewById<EditText>(Resource.Id.password);
-            var pswd = password.Text;
-            if (String.IsNullOrWhiteSpace(pswd))
-            {
-                return;
-            }
-            var hash = Encrypter.GetHash(pswd, SecureStorage.GetAsync("user_salt").Result);
-            if (hash != SecureStorage.GetAsync("user_password").Result)
-            {
-                setAlert("Incorrect password.");
-            }
-            else
-            {
-                password.Text.ToCharArray().ToList()
-                    .ForEach(c => passwordInMemory.AppendChar(c));
-                SetContentView(Resource.Layout.decryptedLayout);
-                var notepad = FindViewById<EditText>(Resource.Id.notepad);
-                notepad.Text = StringCipher.Decrypt(SecureStorage.GetAsync("notepad").Result, pswd);
-            }
-        }
-
-        [Java.Interop.Export("ChangePassword")]
-        public void ChangePassword(View v)
-        {
-            var password = FindViewById<EditText>(Resource.Id.password);
-            var repeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
-
-            if (password.Text != repeatPassword.Text)
-            {
-                setAlert("Given passwords are different.");
-                return;
-            }
-
-            try
-            {
-                savePassword(password.Text);
-            }
-            catch (Exception e)
-            {
-                setAlert(e.Message);
-                return;
-            }
-
-            var notepadText = StringCipher.Decrypt(SecureStorage.GetAsync("notepad").Result,
-                                new System.Net.NetworkCredential("", passwordInMemory).Password);
-            encryptNotepad(password.Text, notepadText);
-
-            passwordInMemory.Clear();
-            password.Text.ToCharArray().ToList()
-                .ForEach(c => passwordInMemory.AppendChar(c));
-
-            setAlert("Password successfully changed.", "green");
-            password.Text = "";
-            repeatPassword.Text = "";
-        }
-
-        [Java.Interop.Export("SingOut")]
+        [Java.Interop.Export("SignOut")]
         public void SignOut(View v)
         {
-            var password = FindViewById<EditText>(Resource.Id.password);
-            var repeatPassword = FindViewById<EditText>(Resource.Id.repeatPassword);
-            var notepad = FindViewById<EditText>(Resource.Id.notepad);
-
-            passwordInMemory.Clear();
-
+            secretInMemory.Clear();
             SetContentView(Resource.Layout.encryptedLayout);
         }
 
